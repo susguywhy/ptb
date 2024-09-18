@@ -3,7 +3,7 @@ Automatic High Voltage Traction Battery Charge Button Pusher Code with Timing
 
 This project will make use of the following Peripherals and Libraries on the Nano 33 IoT board:
 
-Digital Pins:
+Digital Pins:  
 Pin 2  - Reset (loopback to RESET on board).  
 Pin 3  - LED for status.  
 Pin 15 - Servo (3.3V only).
