@@ -104,9 +104,9 @@ void push_charge_hvtb(void) {
   next_charge_ts = compute_next_charge_time();
   timeout0.setDuration(next_charge_ts * MS_IN_ONE_SEC);
   timeout0.restart();
-  myservo.write(45);           //X angle is less than 45 (90-X)
+  myservo.write(47);           //X angle is less than 45 (90-X) - Dial this value in.
   delay(300);
-  myservo.write(160);
+  myservo.write(179);
   btn_press_cnt++;
   hvtb_press_cnt_flash.write(btn_press_cnt);
   charge_hvtb_ts_flash.write(charge_hvtb_ts);
@@ -125,19 +125,19 @@ void cb_10sec_periodic() {
   digitalWrite(ledPin, HIGH);
   
   timeout1.restart();
+
+  //update RTC
+  timeClient.update();
   
   //get bus voltage
   bus_voltage_cloud      =  INA.getBusVoltage_mV();
 
-  //update RTC
-  timeClient.update();
-
   //compute time left until charge button press
   if(charge_hvtb_ts <= 0) {
-    temp_elapsed           =  timeClient.getEpochTime() - ts_startup_time;    
+    temp_elapsed         =  timeClient.getEpochTime() - ts_startup_time;    
   }
   else {
-    temp_elapsed           =  timeClient.getEpochTime() - charge_hvtb_ts;    
+    temp_elapsed         =  timeClient.getEpochTime() - charge_hvtb_ts;    
   }
   elapsed_percent_cloud  = (temp_elapsed * 100.0f) / (float)SECONDS_IN_A_DAY;
   
@@ -160,7 +160,7 @@ void cb_no_wifi_reset() {
   if((WiFi.status() != WL_CONNECTED) && (reset_countdown == true)) {
     wloss_cnt++;
     wifi_loss_cnt_flash.write(wloss_cnt);
-    delay(200);    //wait for flash to finish
+    delay(200);    //wait for flash to finish?
     push_reset();
   }
   else if(WiFi.status() != WL_CONNECTED)
@@ -177,9 +177,9 @@ void cb_no_wifi_reset() {
 
 void calculateUptimeAndPost(String prepend) { 
   
-  sprintf(Uptime_Str, "%lu", (timeClient.getEpochTime() - ts_startup_time));
+  sprintf(Uptime_Str, "%lu sec. [CHTS: %lu]", (timeClient.getEpochTime() - ts_startup_time), charge_hvtb_ts);
 
-  uptime_cloud = prepend + " " + Uptime_Str + " sec.";
+  uptime_cloud = prepend + " " + Uptime_Str;
 }
 
 unsigned long compute_next_charge_time(void) {
