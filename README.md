@@ -28,7 +28,7 @@ INA226
 I have not figured out how to share the sketch/"Thing" via the Arduino Cloud ecosystem; 
 you will mostly likely need to setup an Arduino Cloud account and setup a "Thing" (https://docs.arduino.cc/arduino-cloud/cloud-interface/things/) and then copy the code from ptb.c (by means of copy-and-paste) into your empty sketch.
 
-There are Cloud Variables deployed in this project, so you'll need to recreate them locally using the web interface/things/
+There are Cloud Variables deployed in this project, so you'll need to recreate them locally using the Arduino Cloud web interface
 
 A Dashboard is also recommended so you can visualize the data that arrives from the Nano.
 
