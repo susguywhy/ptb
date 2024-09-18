@@ -133,12 +133,7 @@ void cb_10sec_periodic() {
   bus_voltage_cloud      =  INA.getBusVoltage_mV();
 
   //compute time left until charge button press
-  if(charge_hvtb_ts <= 0) {
-    temp_elapsed         =  timeClient.getEpochTime() - ts_startup_time;    
-  }
-  else {
-    temp_elapsed         =  timeClient.getEpochTime() - charge_hvtb_ts;    
-  }
+  temp_elapsed           =  timeClient.getEpochTime() - charge_hvtb_ts;
   elapsed_percent_cloud  = (temp_elapsed * 100.0f) / (float)SECONDS_IN_A_DAY;
   
   Serial.print("Uptime C: ");
@@ -185,21 +180,13 @@ void calculateUptimeAndPost(String prepend) {
 unsigned long compute_next_charge_time(void) {
   signed long ret = 0;
   
-  if(charge_hvtb_ts <= 0)
+  ret = SECONDS_IN_A_DAY - (timeClient.getEpochTime() - charge_hvtb_ts);
+  if((ret <= 0) || (ret > SECONDS_IN_A_DAY))
   {
-    //initial charge, set the timeout to 1 day
     ret = SECONDS_IN_A_DAY;
   }
-  else
-  {
-    ret = SECONDS_IN_A_DAY - (timeClient.getEpochTime() - charge_hvtb_ts);
-    if((ret <= 0) || (ret > SECONDS_IN_A_DAY))
-    {
-      ret = SECONDS_IN_A_DAY;
-    }
-  }
-  
-  Serial.print("Compute Next CHTS: ");
+
+  Serial.print("compute_next_charge_time() ret: ");
   Serial.println(ret);
     
   return (unsigned long)ret;
@@ -238,7 +225,7 @@ void setup() {
   wloss_cnt      = wifi_loss_cnt_flash.read();
   charge_hvtb_ts = charge_hvtb_ts_flash.read();
 
-  Serial.print("NVM CHTS: ");
+  Serial.print("setup() NVM CHTS TS: ");
   Serial.println(charge_hvtb_ts);
 
   // Connect to Arduino IoT Cloud
@@ -270,6 +257,17 @@ void setup() {
   rtc_zero.setEpoch(ts_startup_time);
 
   //determine the initial charge time... check if charge_hvtb_ts is zero
+  if(charge_hvtb_ts <= 0) {
+    //this is probably the first time we're running it after flashing (NVM is wiped)
+    //so put in a dummy charge_hvtb_ts value
+    Serial.print("charge_hvtb_ts == 0, setting charge_hvtb_ts to: ");
+    Serial.println(ts_startup_time);
+    charge_hvtb_ts_flash.write(ts_startup_time);
+  }
+  else {
+    Serial.print("charge_hvtb_ts: ");
+    Serial.println(charge_hvtb_ts);
+  }
   next_charge_ts = compute_next_charge_time();
 
   Serial.print(" Startup Time: ");
