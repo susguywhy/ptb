@@ -50,17 +50,18 @@
 #define NO_WIFI_RESET_TIMEOUT    (5  * MS_IN_ONE_MINUTE)
 
 Servo           myservo;
-int             loop_count       = 0;
-int             btn_press_cnt    = 0;
-int             wloss_cnt        = 0;
-int             resetPin         = 2;
-int             ledPin           = 3;
-int             servoPin         = 15;
-bool            reset_countdown  = false;
-unsigned long   charge_hvtb_ts   = 0;
-unsigned long   ts_startup_time  = 0;
-unsigned long   next_charge_ts   = 0; 
-float           temp_elapsed     = 0.0f;
+int             loop_count          = 0;
+int             btn_press_cnt       = 0;
+int             wloss_cnt           = 0;
+int             resetPin            = 2;
+int             ledPin              = 3;
+int             servoPin            = 15;
+bool            reset_countdown     = false;
+bool            commit_initial_chts = false;
+unsigned long   charge_hvtb_ts      = 0;
+unsigned long   ts_startup_time     = 0;
+unsigned long   next_charge_ts      = 0; 
+float           temp_elapsed        = 0.0f;
 
 //Uptime timekeeping
 RTCZero         rtc_zero; 
@@ -128,6 +129,11 @@ void cb_10sec_periodic() {
 
   //update RTC
   timeClient.update();
+
+  if(commit_initial_chts) {
+    commit_initial_chts = false;
+    charge_hvtb_ts_flash.write(charge_hvtb_ts);
+  }
   
   //get bus voltage
   bus_voltage_cloud      =  INA.getBusVoltage_mV();
@@ -262,11 +268,13 @@ void setup() {
     //so put in a dummy charge_hvtb_ts value
     Serial.print("charge_hvtb_ts == 0, setting charge_hvtb_ts to: ");
     Serial.println(ts_startup_time);
-    charge_hvtb_ts_flash.write(ts_startup_time);
+    charge_hvtb_ts = ts_startup_time;
+    commit_initial_chts = true;
   }
   else {
     Serial.print("charge_hvtb_ts: ");
     Serial.println(charge_hvtb_ts);
+    commit_initial_chts = false;
   }
   next_charge_ts = compute_next_charge_time();
 
