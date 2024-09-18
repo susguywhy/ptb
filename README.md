@@ -33,5 +33,5 @@ There are Cloud Variables deployed in this project, so you'll need to recreate t
 A Dashboard is also recommended so you can visualize the data that arrives from the Nano.
 
 Refer to the following to see what variables are needed and an exmaple of the dashboard used: 
-https://susguywhy.github.io/ptb.html
+https://susguywhy.github.io/ptb.html#cv
 
