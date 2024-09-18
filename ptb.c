@@ -177,8 +177,9 @@ void cb_no_wifi_reset() {
 }
 
 void calculateUptimeAndPost(String prepend) { 
+  unsigned long temp = timeClient.getEpochTime();
   
-  sprintf(Uptime_Str, "%lu sec. [CHTS: %lu]", (timeClient.getEpochTime() - ts_startup_time), charge_hvtb_ts);
+  sprintf(Uptime_Str, "%lu sec. [EPOCH/CHTS]: %lu / %lu", (temp - ts_startup_time), temp, charge_hvtb_ts);
 
   uptime_cloud = prepend + " " + Uptime_Str;
 }
