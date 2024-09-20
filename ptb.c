@@ -38,19 +38,18 @@
 
 #include "thingProperties.h"
 
-#define HOURS_IN_A_DAY           (24)
-#define SECONDS_IN_A_MINUTE      (60)
-#define SECONDS_IN_A_HOUR        (3600)
-#define SECONDS_IN_A_DAY         (86400)
-#define MS_IN_ONE_SEC            (1000)
-#define MS_IN_ONE_MINUTE         (60 * MS_IN_ONE_SEC)
-#define MILLISECONDS_IN_A_DAY    (SECONDS_IN_A_DAY * MS_IN_ONE_SEC)
-#define CHARGE_HVTB_RATE         (1  * MILLISECONDS_IN_A_DAY)
-#define TEN_SEC_PERIODIC_RATE    (10 * MS_IN_ONE_SEC)
-#define NO_WIFI_RESET_TIMEOUT    (5  * MS_IN_ONE_MINUTE)
+#define HOURS_IN_A_DAY               (24)
+#define SECONDS_IN_A_MINUTE          (60)
+#define SECONDS_IN_A_HOUR            (3600)
+#define SECONDS_IN_A_DAY             (86400)
+#define MS_IN_ONE_SEC                (1000)
+#define MS_IN_ONE_MINUTE             (60 * MS_IN_ONE_SEC)
+#define MILLISECONDS_IN_A_DAY        (SECONDS_IN_A_DAY * MS_IN_ONE_SEC)
+#define CHARGE_HVTB_RATE             (1  * MILLISECONDS_IN_A_DAY)
+#define TEN_SEC_PERIODIC_RATE        (10 * MS_IN_ONE_SEC)
+#define NO_WIFI_RESET_TIMEOUT        (5  * MS_IN_ONE_MINUTE)
 
 Servo           myservo;
-int             loop_count          = 0;
 int             btn_press_cnt       = 0;
 int             wloss_cnt           = 0;
 int             resetPin            = 2;
@@ -61,7 +60,7 @@ bool            commit_initial_chts = false;
 unsigned long   charge_hvtb_ts      = 0;
 unsigned long   ts_startup_time     = 0;
 unsigned long   next_charge_ts      = 0; 
-float           temp_elapsed        = 0.0f;
+unsigned long   temp_elapsed        = 0;
 
 //Uptime timekeeping
 RTCZero         rtc_zero; 
@@ -117,7 +116,6 @@ void push_charge_hvtb(void) {
 //charge HVTB timeout
 void cb_charge_hvtb() {
   push_charge_hvtb();
-  loop_count++;
   calculateUptimeAndPost("[TO]");
 }
 
@@ -130,17 +128,18 @@ void cb_10sec_periodic() {
   //update RTC
   timeClient.update();
 
+  //commit the first time charge timestamp
   if(commit_initial_chts) {
     commit_initial_chts = false;
     charge_hvtb_ts_flash.write(charge_hvtb_ts);
   }
   
   //get bus voltage
-  bus_voltage_cloud      =  INA.getBusVoltage_mV();
+  bus_voltage_cloud     =  INA.getBusVoltage_mV();
 
   //compute time left until charge button press
-  temp_elapsed           =  timeClient.getEpochTime() - charge_hvtb_ts;
-  elapsed_percent_cloud  = (temp_elapsed * 100.0f) / (float)SECONDS_IN_A_DAY;
+  temp_elapsed          =  timeClient.getEpochTime() - charge_hvtb_ts;
+  elapsed_percent_cloud = ((float)temp_elapsed * 100.0f) / (float)SECONDS_IN_A_DAY;
   
   Serial.print("Uptime C: ");
   Serial.print(timeClient.getEpochTime() - ts_startup_time);
@@ -166,12 +165,12 @@ void cb_no_wifi_reset() {
   }
   else if(WiFi.status() != WL_CONNECTED)
   {
-    reset_countdown = true;
+    reset_countdown  = true;
     Serial.println("No WiFi Watchdog Countdown TRIGGERED...");
   }
   else
   {
-    reset_countdown = false;
+    reset_countdown  = false;
     Serial.println("No WiFi Watchdog INACTIVE...");
   }
 }
@@ -179,9 +178,11 @@ void cb_no_wifi_reset() {
 void calculateUptimeAndPost(String prepend) { 
   unsigned long temp = timeClient.getEpochTime();
   
-  sprintf(Uptime_Str, "%lu sec. [EPOCH/CHTS]: %lu / %lu", (temp - ts_startup_time), temp, charge_hvtb_ts);
+  sprintf(Uptime_Str, "%lu sec. [EPOCH/TE/CHTS]: %lu / %lu / %lu", (temp - ts_startup_time), temp, temp_elapsed, charge_hvtb_ts);
 
   uptime_cloud = prepend + " " + Uptime_Str;
+
+  Serial.println(Uptime_Str);
 }
 
 unsigned long compute_next_charge_time(void) {
@@ -269,7 +270,7 @@ void setup() {
     //so put in a dummy charge_hvtb_ts value
     Serial.print("charge_hvtb_ts == 0, setting charge_hvtb_ts to: ");
     Serial.println(ts_startup_time);
-    charge_hvtb_ts = ts_startup_time;
+    charge_hvtb_ts      = ts_startup_time;
     commit_initial_chts = true;
   }
   else {
@@ -289,6 +290,8 @@ void setup() {
   timeout2.start();
 
   uptime_cloud = "[PTB v.1.1] PB: " + String(btn_press_cnt) + " NWI: " + String(wloss_cnt) + " Epoch: " + String(ts_startup_time) + " NC_TS: " + String(next_charge_ts) + "\n";  
+
+  Serial.println(uptime_cloud);
 }
 
 void loop() {
@@ -341,8 +344,8 @@ void onGetUptimeCloudChange()  {
 void onPbBvCloudChange()  {
   // Add your code here to act upon PbBvCloud change
   if(pb_bv_cloud == true) {
-    bus_voltage_cloud = INA.getBusVoltage_mV();
-    uptime_cloud = "BUS VOLTAGE: " + String(bus_voltage_cloud) + "mV \n";
+    bus_voltage_cloud =  INA.getBusVoltage_mV();
+    uptime_cloud      = "BUS VOLTAGE: " + String(bus_voltage_cloud) + "mV \n";
   }
 }
 
@@ -356,6 +359,7 @@ void onResetCloudChange()  {
     push_reset();
   }
 }
+
 
 
 
